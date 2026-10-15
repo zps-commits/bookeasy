@@ -43,7 +43,13 @@ export default function BookingFlow({ serviceId, professionals, offers, timeZone
 
   return (
     <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-      <div className="space-y-6">
+      {/*
+        min-w-0 is load-bearing. A grid item defaults to min-width:auto, so
+        the scrolling day strip inside pushed the column wider than the
+        screen instead of scrolling, and the whole page overflowed by more
+        than a thousand pixels on a phone.
+      */}
+      <div className="min-w-0 space-y-6">
         {professionals.length > 1 ? (
           <section className="panel p-5 sm:p-6">
             <h2 className="section-title">Who with</h2>
