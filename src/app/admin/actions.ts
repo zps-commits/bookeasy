@@ -2,7 +2,7 @@
 
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { createDemoSession, destroySession } from '@/lib/auth/session';
+import { createSession, destroySession } from '@/lib/auth/session';
 import { requireAdmin } from '@/lib/auth/guard';
 import { repository } from '@/lib/db';
 import type { BookingStatus } from '@/types/booking';
@@ -13,7 +13,7 @@ export async function signIn(_prev: LoginState, formData: FormData): Promise<Log
   const password = String(formData.get('password') ?? '');
   // One message for a wrong password and for a panel that is switched off:
   // neither tells an attacker which of the two it is.
-  if (!(await createDemoSession(password))) return { error: 'Those details were not accepted.' };
+  if (!(await createSession(password))) return { error: 'Those details were not accepted.' };
   redirect('/admin');
 }
 

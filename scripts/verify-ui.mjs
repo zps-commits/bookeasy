@@ -6,7 +6,7 @@
  * barrier, whether the whole booking flow actually completes, and whether
  * an unauthenticated visitor is kept out of the admin panel.
  *
- *   npm run build && ADMIN_DEMO_PASSWORD=... npm start -- --port 3310
+ *   npm run build && ADMIN_PASSWORD_HASH=... npm start -- --port 3310
  *   VERIFY_URL=http://localhost:3310 VERIFY_ADMIN_PASSWORD=... npm run verify:ui
  *
  * Exits non-zero on any failure.

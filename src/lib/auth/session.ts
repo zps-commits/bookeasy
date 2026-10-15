@@ -1,36 +1,35 @@
 import { cookies } from 'next/headers';
-import { storageMode } from '@/lib/db';
+import { looksLikeHash, verifyPassword } from './password';
 
 /**
  * Administration access.
  *
- * Two modes, and neither has a default credential.
+ * The deployment stores a PBKDF2 hash in ADMIN_PASSWORD_HASH and never a
+ * password. If it is absent or malformed, the panel does not exist: every
+ * admin route refuses and the login page explains why. There is no default
+ * credential, and there is no path that accepts a plaintext password from
+ * the environment.
  *
- * With a database configured, the administrator signs in with a password
- * the deployment sets, and the session cookie is theirs.
- *
- * Without a configured database, the panel is open only if
- * ADMIN_DEMO_PASSWORD is set in the environment. If it is not set, the panel does not exist: every admin
- * route refuses, and the login page says why. A demonstration that ships
- * with admin/admin is worse than one with no admin at all.
+ * The session cookie is signed with a key derived from that hash, so
+ * changing the password invalidates every session already issued without
+ * needing a second secret to rotate.
  */
 
 const COOKIE = 'bookeasy_admin';
 const MAX_AGE_SECONDS = 60 * 60 * 8;
 
-export function demoPassword(): string | null {
-  const value = process.env.ADMIN_DEMO_PASSWORD?.trim();
-  return value && value.length >= 8 ? value : null;
+export function passwordHash(): string | null {
+  const value = process.env.ADMIN_PASSWORD_HASH?.trim();
+  return value && looksLikeHash(value) ? value : null;
 }
 
 export function adminAvailable(): boolean {
-  return storageMode() !== 'demo' || demoPassword() !== null;
+  return passwordHash() !== null;
 }
 
-/** Why the panel is unavailable, in words an operator can act on. */
 export function adminUnavailableReason(): string | null {
   if (adminAvailable()) return null;
-  return 'Administration is switched off. Set ADMIN_DEMO_PASSWORD to at least eight characters, or configure a database with an admin password, and restart.';
+  return 'Administration is switched off. Generate a hash with `node scripts/hash-password.mjs` and set ADMIN_PASSWORD_HASH, then restart.';
 }
 
 async function sign(value: string, secret: string): Promise<string> {
@@ -45,7 +44,7 @@ async function sign(value: string, secret: string): Promise<string> {
   return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Constant-time comparison. A length check alone leaks the prefix. */
+/** Constant-time comparison. A length-only check leaks the prefix. */
 function sameString(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
   let diff = 0;
@@ -53,12 +52,13 @@ function sameString(a: string, b: string): boolean {
   return diff === 0;
 }
 
-export async function createDemoSession(password: string): Promise<boolean> {
-  const expected = demoPassword();
-  if (!expected || !sameString(password, expected)) return false;
+export async function createSession(password: string): Promise<boolean> {
+  const stored = passwordHash();
+  if (!stored) return false;
+  if (!(await verifyPassword(password, stored))) return false;
 
   const issuedAt = String(Date.now());
-  const token = `${issuedAt}.${await sign(issuedAt, expected)}`;
+  const token = `${issuedAt}.${await sign(issuedAt, stored)}`;
   const jar = await cookies();
   jar.set(COOKIE, token, {
     httpOnly: true,
@@ -76,8 +76,8 @@ export async function destroySession(): Promise<void> {
 }
 
 export async function isSignedIn(): Promise<boolean> {
-  const secret = demoPassword();
-  if (!secret) return false;
+  const stored = passwordHash();
+  if (!stored) return false;
 
   const jar = await cookies();
   const raw = jar.get(COOKIE)?.value;
@@ -85,7 +85,7 @@ export async function isSignedIn(): Promise<boolean> {
 
   const [issuedAt, mac] = raw.split('.');
   if (!issuedAt || !mac) return false;
-  if (!sameString(mac, await sign(issuedAt, secret))) return false;
+  if (!sameString(mac, await sign(issuedAt, stored))) return false;
 
   const age = Date.now() - Number(issuedAt);
   return Number.isFinite(age) && age >= 0 && age < MAX_AGE_SECONDS * 1000;
