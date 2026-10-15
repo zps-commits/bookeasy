@@ -106,11 +106,47 @@ Measured on 2026-10-15. Verification results, not commercial ones.
 | Admin routes with no session | all redirect |
 | Wrong admin password | refused |
 
-**Not verified against a live Supabase project.** No credentials were
-available, so the SQL, the policies and the exclusion constraint are written
-and reviewed but unrun. The in-memory repository reproduces the same two
-invariants and is what the tests exercise. The README says this too, because
-it is the single most important caveat on the project.
+**Verified against a real PostgreSQL database.** The project was later
+migrated from Supabase to Neon and the schema applied to a live database.
+The contract suite runs against it: eight cases, including three concurrent
+bookings of one slot with exactly one accepted. That is the exclusion
+constraint doing the thing the whole design rests on, and it is the one
+rule with no meaningful in-memory equivalent.
+
+| Check | Result |
+|---|---|
+| Unit and contract tests | 99 passing, 1 skipped |
+| Contract suite against real PostgreSQL | 8 cases passing |
+| Concurrent bookings of one slot | 3 attempted, 1 accepted |
+| Exclusion constraint and btree_gist | present in the database |
+
+**The remaining caveat is row level security.** PostgreSQL does not apply
+it to a table's owner, and the default connection string is the owner. The
+policies are written and applied but inert until the application connects
+as the least-privilege role the migration prepares. That is stated in the
+README and the architecture notes rather than glossed.
+
+## The migration to Neon
+
+Moving off Supabase turned out to be mostly a question about where a
+security boundary lives, not about which SQL to write.
+
+The audit found seventeen files mentioning Supabase and three that were
+genuinely provider-specific; the rest were coupled to an import path. That
+is the useful lesson about the repository pattern: it had already done its
+job, and the remaining coupling was cosmetic.
+
+Two migrations granted to `anon` and `authenticated`, which are Supabase's
+roles. Making the schema file portable and moving the whole role model into
+its own migration is what let the SQL apply to plain PostgreSQL.
+
+Authentication moved from Supabase Auth to a PBKDF2 hash the deployment
+stores, which is strictly better than what it replaced on one axis: the old
+demo path kept a password in the environment in clear.
+
+And the thing the migration finally made possible was the test that had
+been missing all along. The concurrency guard could not be proven before,
+because there was no database to prove it on.
 
 ## What I took from it
 

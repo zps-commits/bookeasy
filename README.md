@@ -47,7 +47,24 @@ sensible answer rather than an error.
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS v4 ·
-Supabase (PostgreSQL + Auth) · Zod · date-fns · Vitest · Playwright + axe-core.
+Neon (Lakebase PostgreSQL) · Zod · date-fns · Vitest · Playwright + axe-core.
+
+### Why Neon
+
+The application needs one thing from a database that is not negotiable: an
+exclusion constraint over a time range, which is what refuses the second of
+two concurrent bookings. That is ordinary PostgreSQL, so the question was
+only which PostgreSQL.
+
+Neon gives a connection string and nothing else to learn. There is no
+client library in the browser, no bespoke auth layer to adopt and no
+policy language specific to one vendor — the schema is portable SQL and the
+driver is a driver. It also branches, so a schema change can be tried on a
+copy of the data rather than on the data.
+
+The practical consequence is that the browser never holds a database
+credential at all, which is a smaller attack surface than a public anon key
+with row level security behind it.
 
 ## Running it
 
@@ -75,32 +92,58 @@ Copy `.env.example` to `.env.local`.
 
 | Variable | Needed for |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Running against a real database |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | The same |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side administration. Never expose it to the browser |
+| `DATABASE_URL` | Running against a real database. Server side only — it has no `NEXT_PUBLIC_` prefix for that reason, and the browser never sees it |
+| `ADMIN_PASSWORD_HASH` | The admin panel. A PBKDF2 hash, never a password |
 | `NEXT_PUBLIC_BOOKING_TIMEZONE` | The zone every availability calculation resolves in. Defaults to `America/Recife` |
-| `ADMIN_DEMO_PASSWORD` | The admin panel without Supabase. At least eight characters |
 
-**There is no default admin password.** With neither Supabase nor
-`ADMIN_DEMO_PASSWORD` set, the panel does not exist: every admin route
-redirects, and the login page explains why.
+### Getting DATABASE_URL from Neon
+
+```bash
+npm i -g neon
+neon login
+neon init -y --org-id <org> --project-id <project> --branch production --services postgres
+neon env pull        # writes DATABASE_URL into .env.local
+```
+
+Use the **pooled** `DATABASE_URL` for application traffic.
+`DATABASE_URL_UNPOOLED` is also pulled and is for tools that need a direct
+session.
+
+### Setting the admin password
+
+```bash
+node scripts/hash-password.mjs 'the password you chose'
+```
+
+Paste the printed `ADMIN_PASSWORD_HASH` into the environment. The password
+itself is written nowhere.
+
+**There is no default admin password.** Without `ADMIN_PASSWORD_HASH` the
+panel does not exist: every admin route redirects and the login page says
+how to generate one.
 
 ## The database
 
-Migrations are in `db/migrations`, demonstration data in
-`db/seed.sql`. Apply them with the Supabase CLI:
+Migrations are in `db/migrations`, demonstration data in `db/seed.sql`.
 
 ```bash
-supabase db push
-psql "$DATABASE_URL" -f db/seed.sql
+npm run db:migrate -- --dry   # show what would run
+npm run db:migrate            # apply it
+npm run db:seed               # load the demonstration catalogue
 ```
+
+The runner records each file in `schema_migrations` and wraps it in a
+transaction, so a second run is a no-op and a failure half way leaves
+nothing behind. It uses the Neon driver rather than `psql`, which is not
+installed everywhere.
 
 What the schema does that matters:
 
 - **An exclusion constraint** on `bookings` refuses two overlapping confirmed
   bookings for one professional. This is the concurrency guard.
-- **No public select on `bookings`.** Availability reads a view that exposes
-  the busy interval and nothing else — no name, no contact.
+- **No public select on `bookings`.** Availability reads a security definer
+  function that returns the busy interval and nothing else — no name, no
+  contact.
 - **Booking and cancellation are security definer functions**, so an anonymous
   client never needs select on the table. The end time is derived inside the
   function from the service duration, never taken from the caller.
@@ -136,7 +179,7 @@ Measured on 2026-10-15:
 
 | Check | Result |
 |---|---|
-| `npm test` | 72 passing |
+| `npm test` | 99 passing, 1 skipped |
 | `npm run typecheck` | passes, `strict` and `noUncheckedIndexedAccess` |
 | `npm run lint` | passes |
 | `npm run build` | passes |
@@ -145,12 +188,23 @@ Measured on 2026-10-15:
 | Booking flow, end to end, in a browser | book, slot disappears, cancel, slot returns |
 | Admin routes without a session | all redirect to the login page |
 
-**Not verified against a live Supabase project.** No credentials were available
-in the environment this was built in, so the SQL, the row level security
-policies and the exclusion constraint are written and reviewed but have not
-been executed against a real database. Everything that was exercised ran
-against the in-memory repository, which reproduces the same two rules in
-TypeScript. Treat the migrations as unrun until you run them.
+| Contract suite against real PostgreSQL | 8 cases passing, including three concurrent bookings of one slot |
+| Exclusion constraint, btree_gist, the four functions | present in the database |
+| Booking flow against Neon, in a browser | book, slot disappears, cancel, slot returns |
+
+**The schema has been applied to a real Neon database and the concurrency
+guard verified there.** Three simultaneous bookings of the same slot, one
+accepted: that is the exclusion constraint doing its job, and it is the one
+rule with no meaningful in-memory equivalent.
+
+**What row level security does and does not do here.** The policies are
+written against an `app.is_admin` session flag and a least-privilege
+`bookeasy_app` role. If `DATABASE_URL` points at the project's owner role,
+PostgreSQL does not apply row level security to it, so the policies are
+inert and privacy rests on the server code and the security definer
+functions. Create the application role and point the connection string at
+it to make them bite. This is stated rather than glossed because "RLS is
+enabled" is not the same as "RLS is protecting you".
 
 Also not verified: real iOS and Android hardware, and screen reader software.
 

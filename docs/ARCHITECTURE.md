@@ -18,7 +18,7 @@ src/
     bookings/                Orchestration and cancellation tokens
     services/                Catalogue queries and fault detection
   lib/
-    supabase/                Repository interface and two implementations
+    db/                      Repository interface, selector, providers/
     auth/                    Session and the single authorisation guard
     dates/                   Timezone conversion, in one place
     validation/              Zod schemas
@@ -52,16 +52,17 @@ of a constraint violation.
 
 `BookingRepository` is the whole surface. Two implementations satisfy it:
 
-- **`supabaseRepository`** — reads through row level security, writes bookings
-  through security definer functions, and reads availability from a view that
-  carries no customer data.
+- **`neonRepository`** — PostgreSQL over the Neon driver. Writes bookings
+  through security definer functions, reads availability from one that
+  carries no customer data, and runs administrative statements inside a
+  transaction that sets `app.is_admin` with `set local`, after the
+  application's own authorisation check has passed.
 - **`memoryRepository`** — what the application runs on with no credentials.
   Not a test mock: the demo and the test suite exercise the same code path,
   and it reproduces the same two invariants the database enforces, because a
   demonstration that accepts a double booking is not demonstrating the product.
 
-Which one is used is decided once, by whether both public Supabase values are
-present.
+Which one is used is decided once, by whether `DATABASE_URL` is set.
 
 ## Time
 
@@ -97,3 +98,31 @@ if that is unset the panel does not exist.
   nonexistent booking both 404, so it cannot be used to probe for valid ids.
 - The route is `noindex`.
 - Only the hash of the cancellation token is stored.
+
+
+## Why Neon, and what changed with it
+
+The database has to support an exclusion constraint over a time range. That
+is ordinary PostgreSQL, so the only question was which PostgreSQL. Neon
+gives a connection string and nothing else to learn: portable SQL, an
+ordinary driver, no vendor policy language, and branches so a schema change
+can be tried on a copy of the data.
+
+**The security boundary moved, and that is the substantive change.** Under
+Supabase the browser held an anon key and spoke to PostgREST, so row level
+security was the wall between a visitor and the bookings table. With a
+direct connection the browser holds no credential and never reaches the
+database, so that wall is now the server process.
+
+The policies were not deleted on that basis. "The server is the only
+client" is an assumption, and an assumption is not an enforcement. They
+were rewritten against a least-privilege `bookeasy_app` role and an
+`app.is_admin` session flag that only the server sets.
+
+**One honest limit.** PostgreSQL does not apply row level security to a
+table's owner. If `DATABASE_URL` points at the project's owner role — which
+is what `neon env pull` gives you by default — the policies are inert, and
+privacy rests on the server code plus the security definer functions.
+Create `bookeasy_app`, grant it what `0003` grants, and point the
+connection string at it to make the policies bite. "RLS is enabled" is not
+the same sentence as "RLS is protecting you".
