@@ -7,14 +7,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "node --env-file-if-exists=.env.local ./node_modules/.bin/vitest run",
+    "test:watch": "node --env-file-if-exists=.env.local ./node_modules/.bin/vitest",
     "typecheck": "tsc --noEmit",
-    "verify:ui": "node scripts/verify-ui.mjs"
+    "verify:ui": "node scripts/verify-ui.mjs",
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "db:seed": "node --env-file-if-exists=.env.local scripts/seed.mjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^5.9.1",
+    "@neon/config": "^1.9.1",
+    "@neon/env": "^1.6.2",
     "@neondatabase/serverless": "^1.2.0",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.57.0",

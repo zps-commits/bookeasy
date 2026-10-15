@@ -1,3 +1,9 @@
+// @vitest-environment node
+//
+// The Neon driver talks over a WebSocket, and jsdom's implementation is not
+// the one it expects: under the default environment every case here fails
+// inside undici rather than in the database. This file is the only one that
+// touches a network socket, so it is the only one that needs Node.
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import { repositoryContract } from './repositoryContract';
 

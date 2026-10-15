@@ -117,7 +117,11 @@ with (security_invoker = true) as
   from bookings
   where status = 'confirmed';
 
--- ── Row level security ──────────────────────────────────────────────────
+-- ── Row level security ────────────────────────────────────────────────
+--
+-- Enabled here; the policies themselves live in 0003, because they depend
+-- on the role model, and the role model depends on the provider. This file
+-- is the schema, and the schema is provider-neutral.
 
 alter table services enable row level security;
 alter table professionals enable row level security;
@@ -125,48 +129,3 @@ alter table service_professionals enable row level security;
 alter table business_hours enable row level security;
 alter table availability_blocks enable row level security;
 alter table bookings enable row level security;
-
--- Anonymous visitors read the catalogue and the calendar shape.
-drop policy if exists services_public_read on services;
-create policy services_public_read on services
-  for select using (active = true);
-
-drop policy if exists professionals_public_read on professionals;
-create policy professionals_public_read on professionals
-  for select using (active = true);
-
-drop policy if exists service_professionals_public_read on service_professionals;
-create policy service_professionals_public_read on service_professionals
-  for select using (true);
-
-drop policy if exists business_hours_public_read on business_hours;
-create policy business_hours_public_read on business_hours
-  for select using (true);
-
-drop policy if exists availability_blocks_public_read on availability_blocks;
-create policy availability_blocks_public_read on availability_blocks
-  for select using (true);
-
--- Bookings are never readable by an anonymous client. There is deliberately
--- no public select policy: the busy view above is the only exposure, and
--- booking and cancelling both go through security definer functions.
-drop policy if exists bookings_admin_all on bookings;
-create policy bookings_admin_all on bookings
-  for all to authenticated using (true) with check (true);
-
--- Administration writes to everything, and only when signed in.
-drop policy if exists services_admin_write on services;
-create policy services_admin_write on services
-  for all to authenticated using (true) with check (true);
-
-drop policy if exists professionals_admin_write on professionals;
-create policy professionals_admin_write on professionals
-  for all to authenticated using (true) with check (true);
-
-drop policy if exists business_hours_admin_write on business_hours;
-create policy business_hours_admin_write on business_hours
-  for all to authenticated using (true) with check (true);
-
-drop policy if exists availability_blocks_admin_write on availability_blocks;
-create policy availability_blocks_admin_write on availability_blocks
-  for all to authenticated using (true) with check (true);

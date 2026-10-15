@@ -85,11 +85,7 @@ begin
 end;
 $$;
 
-revoke all on function create_booking(uuid, uuid, text, text, timestamptz, text) from public;
-grant execute on function create_booking(uuid, uuid, text, text, timestamptz, text) to anon, authenticated;
-
-revoke all on function cancel_booking(text) from public;
-grant execute on function cancel_booking(text) to anon, authenticated;
+-- Grants belong with the role model, in 0003.
 
 -- One booking, by the hash of the token only its owner holds. Returns the
 -- customer's own details and nothing about anyone else.
@@ -113,5 +109,4 @@ as $$
   where b.cancellation_token_hash = p_token_hash;
 $$;
 
-revoke all on function booking_by_token(text) from public;
-grant execute on function booking_by_token(text) to anon, authenticated;
+-- Grants belong with the role model, in 0003.
