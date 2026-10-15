@@ -77,11 +77,10 @@ export default async function HomePage() {
         </ul>
       )}
 
-      <p className="mt-12 text-sm text-muted">
-        Already booked?{' '}
-        <span className="text-ink">
-          Use the private link you were given to view or cancel it.
-        </span>
+      <p className="mt-12 max-w-prose text-sm text-muted">
+        Already booked? Open the private link you were given when you booked. It is the only way
+        back to the appointment, and the only way to cancel it — there is no account and no
+        password.
       </p>
     </div>
   );

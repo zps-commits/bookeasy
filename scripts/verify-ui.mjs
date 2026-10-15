@@ -161,9 +161,57 @@ if (ADMIN_PASSWORD) {
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL(/\/admin$/, { timeout: 15_000 });
   log.push('the right password signs in, a wrong one does not');
+
+  /* The admin pages get the same width and axe treatment as the public
+     ones. They were not covered at first, which is exactly how an operator
+     ends up with a panel that is unusable on the phone they carry. */
+  for (const path of ['/admin', '/admin?range=week', '/admin/services', '/admin/availability']) {
+    for (const viewport of VIEWPORTS) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      const response = await page.goto(URL + path, { waitUntil: 'networkidle' });
+      await page.waitForTimeout(150);
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      const axe = await new AxeBuilder({ page }).withTags(WCAG).analyze();
+      check(response?.status() === 200, `${path} ${viewport.name}: HTTP ${response?.status()}`);
+      check(overflow <= 0, `${path} ${viewport.name}: ${overflow}px of horizontal overflow`);
+      for (const violation of axe.violations) {
+        failures.push(
+          `${path} ${viewport.name} axe ${violation.id} (${violation.impact}): ${violation.nodes
+            .map((n) => n.target.join(' '))
+            .join(', ')}`,
+        );
+      }
+      log.push(
+        `${path.padEnd(42)} ${viewport.name.padEnd(8)} ${response?.status()} overflow=${overflow} axe=${axe.violations.length}`,
+      );
+    }
+  }
+  await page.setViewportSize({ width: 1280, height: 900 });
 } else {
   log.push('admin sign-in not exercised: set VERIFY_ADMIN_PASSWORD to include it');
 }
+
+/* Keyboard. The first stop must be the skip link, and a booking must be
+   completable without a pointer. */
+const keyboard = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+const kb = await keyboard.newPage();
+await kb.goto(URL, { waitUntil: 'networkidle' });
+await kb.keyboard.press('Tab');
+const firstStop = await kb.evaluate(() => document.activeElement?.textContent?.trim() ?? '');
+check(/Skip to content/i.test(firstStop), `the first tab stop was "${firstStop}"`);
+
+await kb.goto(URL + BOOK_PATH, { waitUntil: 'networkidle' });
+const reachable = await kb.evaluate(() => {
+  const focusable = document.querySelectorAll(
+    'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])',
+  );
+  return focusable.length;
+});
+check(reachable > 10, `only ${reachable} focusable elements on the booking page`);
+log.push(`keyboard: first stop is the skip link, ${reachable} focusable elements on the booking page`);
+await keyboard.close();
 
 await context.close();
 await browser.close();
