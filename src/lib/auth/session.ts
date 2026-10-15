@@ -1,16 +1,16 @@
 import { cookies } from 'next/headers';
-import { supabaseConfigured } from '@/lib/supabase/client';
+import { storageMode } from '@/lib/db';
 
 /**
  * Administration access.
  *
  * Two modes, and neither has a default credential.
  *
- * With Supabase configured, the administrator signs in through Supabase
- * Auth and the session cookie is theirs.
+ * With a database configured, the administrator signs in with a password
+ * the deployment sets, and the session cookie is theirs.
  *
- * Without it, the panel is open only if ADMIN_DEMO_PASSWORD is set in the
- * environment. If it is not set, the panel does not exist: every admin
+ * Without a configured database, the panel is open only if
+ * ADMIN_DEMO_PASSWORD is set in the environment. If it is not set, the panel does not exist: every admin
  * route refuses, and the login page says why. A demonstration that ships
  * with admin/admin is worse than one with no admin at all.
  */
@@ -24,13 +24,13 @@ export function demoPassword(): string | null {
 }
 
 export function adminAvailable(): boolean {
-  return supabaseConfigured || demoPassword() !== null;
+  return storageMode() !== 'demo' || demoPassword() !== null;
 }
 
 /** Why the panel is unavailable, in words an operator can act on. */
 export function adminUnavailableReason(): string | null {
   if (adminAvailable()) return null;
-  return 'Administration is switched off. Set ADMIN_DEMO_PASSWORD to at least eight characters, or configure Supabase, and restart.';
+  return 'Administration is switched off. Set ADMIN_DEMO_PASSWORD to at least eight characters, or configure a database with an admin password, and restart.';
 }
 
 async function sign(value: string, secret: string): Promise<string> {

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { bookAppointment } from '@/domain/bookings/book';
-import { memoryRepository, resetMemoryRepository } from '@/lib/supabase/memory';
+import { memoryRepository, resetMemoryRepository } from '@/lib/db/providers/memory';
 import { availableSlots } from '@/domain/availability/slots';
 import { hashToken, looksLikeToken } from '@/domain/bookings/tokens';
 import { civilDateKey } from '@/lib/dates/zone';

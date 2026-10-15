@@ -1,7 +1,7 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { bookAppointment, PROBLEM_MESSAGE } from '@/domain/bookings/book';
 import { bookingRequestSchema, cancellationSchema } from '@/lib/validation/schemas';
 import { hashToken } from '@/domain/bookings/tokens';

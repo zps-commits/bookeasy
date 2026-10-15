@@ -6,7 +6,7 @@ import {
   findService,
   professionalsFor,
 } from '@/domain/services/catalog';
-import { memoryRepository } from '@/lib/supabase/memory';
+import { memoryRepository } from '@/lib/db/providers/memory';
 import type { Professional, Service } from '@/types/booking';
 import { bookingRequestSchema, serviceSchema } from '@/lib/validation/schemas';
 

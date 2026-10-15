@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createDemoSession, destroySession } from '@/lib/auth/session';
 import { requireAdmin } from '@/lib/auth/guard';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import type { BookingStatus } from '@/types/booking';
 
 export type LoginState = { error: string | null };

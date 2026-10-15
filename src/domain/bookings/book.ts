@@ -1,5 +1,5 @@
 import type { BookingProblem, Service, Slot } from '@/types/booking';
-import type { BookingRepository } from '@/lib/supabase/repository';
+import type { BookingRepository } from '@/lib/db/repository';
 import { availableSlots } from '@/domain/availability/slots';
 import { civilDateKey } from '@/lib/dates/zone';
 import { createCancellationToken, hashToken } from './tokens';

@@ -1,6 +1,6 @@
 import { connection } from 'next/server';
 import { notFound } from 'next/navigation';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { hashToken, looksLikeToken } from '@/domain/bookings/tokens';
 import { BOOKING_TIMEZONE } from '@/lib/config';
 import { clockTime, longDate } from '@/lib/format';

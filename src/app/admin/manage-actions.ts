@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { requireAdmin } from '@/lib/auth/guard';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { blockSchema, serviceSchema } from '@/lib/validation/schemas';
 
 /** Catalogue and availability management. Every action guards first. */

@@ -1,6 +1,6 @@
 import { connection } from 'next/server';
 import Link from 'next/link';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { bookableServices, professionalsFor } from '@/domain/services/catalog';
 import { duration, money } from '@/lib/format';
 

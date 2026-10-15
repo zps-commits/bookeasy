@@ -1,6 +1,6 @@
 import { connection } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guard';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { BOOKING_TIMEZONE } from '@/lib/config';
 import { clockTime, longDate } from '@/lib/format';
 import BlockForm from '@/components/admin/BlockForm';

@@ -11,7 +11,7 @@ import type {
   CreateBookingInput,
   CreateBookingResult,
   CustomerBookingView,
-} from './repository';
+} from '../repository';
 
 /**
  * The in-memory repository.

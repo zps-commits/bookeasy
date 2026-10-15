@@ -1,6 +1,6 @@
 import { connection } from 'next/server';
 import { notFound } from 'next/navigation';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { findService, professionalsFor } from '@/domain/services/catalog';
 import { availableSlots } from '@/domain/availability/slots';
 import { civilDateKey } from '@/lib/dates/zone';

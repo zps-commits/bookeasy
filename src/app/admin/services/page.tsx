@@ -1,6 +1,6 @@
 import { connection } from 'next/server';
 import { requireAdmin } from '@/lib/auth/guard';
-import { repository } from '@/lib/supabase';
+import { repository } from '@/lib/db';
 import { duration, money } from '@/lib/format';
 import ServiceForm from '@/components/admin/ServiceForm';
 
