@@ -90,3 +90,28 @@ grant execute on function create_booking(uuid, uuid, text, text, timestamptz, te
 
 revoke all on function cancel_booking(text) from public;
 grant execute on function cancel_booking(text) to anon, authenticated;
+
+-- One booking, by the hash of the token only its owner holds. Returns the
+-- customer's own details and nothing about anyone else.
+create or replace function booking_by_token(p_token_hash text)
+returns table (
+  service_name text,
+  professional_name text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  status booking_status,
+  customer_name text
+)
+language sql
+security definer
+set search_path = public
+as $$
+  select s.name, p.name, b.starts_at, b.ends_at, b.status, b.customer_name
+  from bookings b
+  join services s on s.id = b.service_id
+  join professionals p on p.id = b.professional_id
+  where b.cancellation_token_hash = p_token_hash;
+$$;
+
+revoke all on function booking_by_token(text) from public;
+grant execute on function booking_by_token(text) to anon, authenticated;
