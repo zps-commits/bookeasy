@@ -87,12 +87,12 @@ redirects, and the login page explains why.
 
 ## The database
 
-Migrations are in `supabase/migrations`, demonstration data in
-`supabase/seed.sql`. Apply them with the Supabase CLI:
+Migrations are in `db/migrations`, demonstration data in
+`db/seed.sql`. Apply them with the Supabase CLI:
 
 ```bash
 supabase db push
-psql "$DATABASE_URL" -f supabase/seed.sql
+psql "$DATABASE_URL" -f db/seed.sql
 ```
 
 What the schema does that matters:

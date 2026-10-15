@@ -1,24 +1,21 @@
 import { memoryRepository } from './providers/memory';
+import { neonRepository, postgresConfigured } from './providers/neon';
 import type { BookingRepository } from './repository';
-import { supabaseConfigured, anonServerClient } from './providers/supabaseClient';
-import { supabaseRepository } from './providers/supabase';
 
 /**
  * Which storage the application is running on.
  *
- * Application code imports from here and nowhere else. No route, action or
- * component names a provider: swapping one is a change to this file and to
- * one folder beneath it.
+ * Application code imports from here and names no provider. Choosing one
+ * is this file and the folder beneath it.
  */
-export type StorageMode = 'postgres' | 'supabase' | 'demo';
+export type StorageMode = 'postgres' | 'demo';
 
 export function storageMode(): StorageMode {
-  if (supabaseConfigured) return 'supabase';
-  return 'demo';
+  return postgresConfigured() ? 'postgres' : 'demo';
 }
 
 export function repository(): BookingRepository {
-  return storageMode() === 'supabase' ? supabaseRepository(anonServerClient()) : memoryRepository;
+  return storageMode() === 'postgres' ? neonRepository : memoryRepository;
 }
 
 export type { BookingRepository };
