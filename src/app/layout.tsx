@@ -29,8 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {demo ? (
           <p className="bg-accent-deep px-5 py-2 text-center text-xs text-on-deep">
-            Demonstration mode. Bookings are held in memory and disappear when the server
-            restarts. No database is connected.
+            Demonstration mode: no database is connected. Bookings are held in the server&apos;s
+            memory, so they disappear when it restarts — and on a serverless host that can be
+            between one request and the next. Run it against PostgreSQL for a booking that
+            stays made.
           </p>
         ) : null}
 
