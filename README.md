@@ -86,6 +86,23 @@ that looks connected to a database it is not connected to is a lie.
 | `npm run lint` | ESLint |
 | `npm run verify:ui` | Browser verification — see below |
 
+## Why there is no public demonstration
+
+Deployed to a serverless host with no database, this application does not
+work, and it is worth saying exactly why rather than shipping a link that
+half functions.
+
+Demonstration mode keeps bookings in the server's memory. A serverless
+host runs no single long-lived server: the request that creates a booking
+and the request that then shows its confirmation can be handled by
+different instances, and the second one has never heard of the first. The
+committed browser check catches it — the same build passes locally in
+demonstration mode and fails against the deployment with "no confirmation
+after booking".
+
+The fix is a real database, not a workaround. Run it locally with
+PostgreSQL, or point a deployment at one.
+
 ## Configuration
 
 Copy `.env.example` to `.env.local`.
